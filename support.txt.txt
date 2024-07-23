@@ -1,0 +1,403 @@
+Project Overview
+Project Kick-off:
+System requirements, Analysis & Discussion: Initial phase where you gather requirements, analyze them, and discuss the project scope.
+Architecture design, Database modeling: Design the system architecture and model the database.
+User Interface (prototypes and design) Integration: Create UI prototypes and integrate them into the system.
+Scope of Application (Website and Backend Admin Panel):
+
+Website Features:
+
+Home: The landing page with general information and navigation.
+About Us: Information about the company.
+Our Products: A list of products offered.
+Contact Us: Contact information and form.
+Buy Sim Cards: Page to purchase SIM cards.
+View Plans: Display various plans like PayGo Voice, PayGo Data, PaxSente, etc.
+Plans Detail Page: Detailed information about each plan with an option to buy using 4 different payment options (MTN, Airtel, Layka Mobile, another in process).
+Customer service: Subsections for My PaxTel, PaxTel media, Connection and configuration, Support, Video tutorials, PaxTel application.
+
+Contact Us: Social media links and contact information.
+Coverage map: Map showing coverage areas.
+News: Latest news related to the company.
+Terms and conditions: Legal terms.
+License: Licensing information.
+Testimonials: Customer reviews.
+Our partners: Information about partners.
+Backend Admin Panel:
+Login: Authentication for admins.
+Dashboard: Overview of website statistics and activity.
+Manage Plans: CRUD operations for plans.
+Manage Categories: CRUD operations for categories.
+All Payments/Purchased plans: View all payments and purchased plans.
+Most sell plan: Information on the most sold plan.
+Reports: Generate various reports.
+Stats: Statistics for today, this week, this month.
+Payment options used much by users: Analyze which payment options are most popular.
+CMS Pages: Update all front-end pages from the backend admin panel.
+
+MongoDB Schema
+-----------------
+Collections and Fields
+
+Users
+=========
+_id (ObjectId): Primary key
+username (String): Unique username
+password (String): Hashed password
+role (String): Role of the user (e.g., admin, customer)
+email (String): Email address
+createdAt (Date): Timestamp of account creation
+
+Plans
+=======
+
+_id (ObjectId): Primary key
+name (String): Name of the plan
+categoryId (ObjectId): Foreign key referencing Categories collection
+description (String): Description of the plan
+price (Number): Price of the plan
+paymentOptions (Array of String): Available payment options
+createdAt (Date): Timestamp of plan creation
+updatedAt (Date): Timestamp of last update
+
+Categories
+===========
+
+_id (ObjectId): Primary key
+name (String): Name of the category
+description (String): Description of the category
+createdAt (Date): Timestamp of category creation
+
+Payments
+==========
+
+
+
+_id (ObjectId): Primary key
+userId (ObjectId): Foreign key referencing Users collection
+planId (ObjectId): Foreign key referencing Plans collection
+amount (Number): Amount paid
+paymentMethod (String): Payment method used
+status (String): Payment status (e.g., completed, pending)
+createdAt (Date): Timestamp of payment creation
+
+CMSPages
+=========
+
+_id (ObjectId): Primary key
+pageName (String): Name of the page
+content (String): HTML or markdown content of the page
+createdAt (Date): Timestamp of page creation
+updatedAt (Date): Timestamp of last update
+
+Reports
+==========
+
+_id (ObjectId): Primary key
+reportType (String): Type of report (e.g., sales, user activity)
+data (Mixed): Report data (can be an array or object)
+generatedAt (Date): Timestamp of report generation
+
+Statistics
+=============
+
+_id (ObjectId): Primary key
+statType (String): Type of statistic (e.g., daily, weekly, monthly)
+value (Number): Statistic value
+calculatedAt (Date): Timestamp of statistic calculation
+Relationships
+Users and Payments: One-to-many relationship (one user can have multiple payments).
+Plans and Payments: One-to-many relationship (one plan can be purchased in multiple payments).
+Categories and Plans: One-to-many relationship (one category can have multiple plans).
+CMSPages and Admins: Admins manage CMS pages, but there is no direct relationship in the schema since actions like create/update are logged separately.
+
+
+
+
+SIMCards
+
+_id (ObjectId): Primary key
+simNumber (String): Unique SIM card number
+status (String): Status of the SIM card (e.g., available, sold, activated)
+planId (ObjectId): Foreign key referencing the Plans collection (optional)
+createdAt (Date): Timestamp of SIM card addition
+updatedAt (Date): Timestamp of last update
+
+SIMCardPurchases
+
+_id (ObjectId): Primary key
+userId (ObjectId): Foreign key referencing the Users collection
+simCardId (ObjectId): Foreign key referencing the SIMCards collection
+planId (ObjectId): Foreign key referencing the Plans collection (optional)
+paymentId (ObjectId): Foreign key referencing the Payments collection
+purchaseDate (Date): Timestamp of purchase
+activationStatus (String): Status of SIM card activation (e.g., pending, activated)
+createdAt (Date): Timestamp of record creation
+updatedAt (Date): Timestamp of last update
+Relationships
+Users and SIMCardPurchases: One-to-many relationship (one user can have multiple SIM card purchases).
+SIMCards and SIMCardPurchases: One-to-one relationship (one SIM card can only be purchased once).
+Plans and SIMCards: One-to-many relationship (one plan can be associated with multiple SIM cards).
+Payments and SIMCardPurchases: One-to-one relationship (one payment corresponds to one SIM card purchase).
+
+
+
+        ---------------------------------------------------------------------
+
+				Airtel Payment for african
+---------------------------------------------------------------------------------------------
+
+Step 1: Set Up Your Node.js Environment
+Install Node.js:
+Download and install Node.js from nodejs.org.
+
+Initialize a New Node.js Project:
+Open your terminal and run the following commands to create and initialize a new Node.js project:
+
+bash
+Copy code
+mkdir airtel-payment-integration
+cd airtel-payment-integration
+npm init -y
+Install Required Packages:
+Install Express, Body-Parser, Axios, and Dotenv:
+
+bash
+Copy code
+npm install express body-parser axios dotenv uuid mongoose
+Step 2: Set Up Project Structure
+Create the following files:
+
+index.js: The main application file.
+.env: To store environment variables securely.
+Step 3: Configure Environment Variables
+Create a .env file in the root of your project and add your Airtel API credentials:
+
+plaintext
+Copy code
+AIRTEL_API_KEY=your_api_key
+AIRTEL_SECRET_KEY=your_secret_key
+PORT=3000
+MONGODB_URI=mongodb://localhost:27017/airtelPayments
+Step 4: Create the Express Server
+In index.js, set up your basic Express server:
+
+javascript
+Copy code
+require('dotenv').config();
+const express = require('express');
+const bodyParser = require('body-parser');
+const axios = require('axios');
+const { v4: uuidv4 } = require('uuid');
+const mongoose = require('mongoose');
+
+const app = express();
+app.use(bodyParser.json());
+
+const PORT = process.env.PORT || 3000;
+const AIRTEL_API_BASE_URL = 'https://openapi.airtel.africa/standard/v1/payments/';
+const AIRTEL_API_KEY = process.env.AIRTEL_API_KEY;
+const AIRTEL_SECRET_KEY = process.env.AIRTEL_SECRET_KEY;
+
+mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+
+const transactionSchema = new mongoose.Schema({
+  transactionId: String,
+  amount: Number,
+  currency: String,
+  phoneNumber: String,
+  status: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Transaction = mongoose.model('Transaction', transactionSchema);
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
+Step 5: Create the Payment Endpoint
+Add a new endpoint to handle payment requests in index.js:
+
+javascript
+Copy code
+app.post('/pay', async (req, res) => {
+  const { amount, currency, phoneNumber } = req.body;
+  const transactionId = uuidv4(); // Generate a unique transaction ID
+
+  // Save transaction to database
+  const newTransaction = new Transaction({
+    transactionId,
+    amount,
+    currency,
+    phoneNumber,
+    status: 'pending'
+  });
+
+  await newTransaction.save();
+
+  try {
+    const response = await axios.post(`${AIRTEL_API_BASE_URL}pay`, {
+      amount,
+      currency,
+      phoneNumber,
+      transactionId,
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${AIRTEL_API_KEY}:${AIRTEL_SECRET_KEY}`
+      }
+    });
+
+    // Update transaction status
+    await Transaction.updateOne({ transactionId }, { status: 'completed' });
+
+    res.status(200).json(response.data);
+  } catch (error) {
+    console.error('Error processing payment:', error.response ? error.response.data : error.message);
+
+    // Update transaction status
+    await Transaction.updateOne({ transactionId }, { status: 'failed' });
+
+    res.status(500).json({ error: 'Payment processing failed' });
+  }
+});
+Step 6: Handle Webhook Responses
+Add a webhook endpoint to receive payment status notifications:
+
+javascript
+Copy code
+app.post('/webhook', async (req, res) => {
+  const paymentResponse = req.body;
+
+  // Extract the transactionId and status from the response
+  const { transactionId, status } = paymentResponse;
+
+  // Update the transaction status in the database
+  await Transaction.updateOne({ transactionId }, { status });
+
+  console.log('Payment response:', paymentResponse);
+
+  res.status(200).send('Webhook received');
+});
+Step 7: Start Your Server
+Run your server:
+
+bash
+Copy code
+node index.js
+Step 8: Test Your Integration
+Use a tool like Postman or cURL to send a POST request to your /pay endpoint:
+
+bash
+Copy code
+curl -X POST http://localhost:3000/pay \
+-H "Content-Type: application/json" \
+-d '{
+  "amount": "1000",
+  "currency": "INR",
+  "phoneNumber": "9876543210"
+}'
+Step 9: Verify Webhook Integration
+To test the webhook, you can simulate a response or wait for actual notifications from Airtel's API. Ensure your server is publicly accessible or use a tool like ngrok to expose your local server to the internet:
+
+bash
+Copy code
+ngrok http 3000
+Update your webhook URL in Airtel's dashboard to point to the ngrok URL.
+
+Step 10: Secure Your Endpoints
+Ensure that you validate incoming requests and protect your endpoints from unauthorized access. You can use middleware to authenticate requests and validate payloads.
+
+Final Code for index.js
+Here is the complete code for index.js with the necessary modifications:
+
+javascript
+Copy code
+require('dotenv').config();
+const express = require('express');
+const bodyParser = require('body-parser');
+const axios = require('axios');
+const { v4: uuidv4 } = require('uuid');
+const mongoose = require('mongoose');
+
+const app = express();
+app.use(bodyParser.json());
+
+const PORT = process.env.PORT || 3000;
+const AIRTEL_API_BASE_URL = 'https://openapi.airtel.africa/standard/v1/payments/';
+const AIRTEL_API_KEY = process.env.AIRTEL_API_KEY;
+const AIRTEL_SECRET_KEY = process.env.AIRTEL_SECRET_KEY;
+
+mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+
+const transactionSchema = new mongoose.Schema({
+  transactionId: String,
+  amount: Number,
+  currency: String,
+  phoneNumber: String,
+  status: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Transaction = mongoose.model('Transaction', transactionSchema);
+
+app.post('/pay', async (req, res) => {
+  const { amount, currency, phoneNumber } = req.body;
+  const transactionId = uuidv4(); // Generate a unique transaction ID
+
+  // Save transaction to database
+  const newTransaction = new Transaction({
+    transactionId,
+    amount,
+    currency,
+    phoneNumber,
+    status: 'pending'
+  });
+
+  await newTransaction.save();
+
+  try {
+    const response = await axios.post(`${AIRTEL_API_BASE_URL}pay`, {
+      amount,
+      currency,
+      phoneNumber,
+      transactionId,
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${AIRTEL_API_KEY}:${AIRTEL_SECRET_KEY}`
+      }
+    });
+
+    // Update transaction status
+    await Transaction.updateOne({ transactionId }, { status: 'completed' });
+
+    res.status(200).json(response.data);
+  } catch (error) {
+    console.error('Error processing payment:', error.response ? error.response.data : error.message);
+
+    // Update transaction status
+    await Transaction.updateOne({ transactionId }, { status: 'failed' });
+
+    res.status(500).json({ error: 'Payment processing failed' });
+  }
+});
+
+app.post('/webhook', async (req, res) => {
+  const paymentResponse = req.body;
+
+  // Extract the transactionId and status from the response
+  const { transactionId, status } = paymentResponse;
+
+  // Update the transaction status in the database
+  await Transaction.updateOne({ transactionId }, { status });
+
+  console.log('Payment response:', paymentResponse);
+
+  res.status(200).send('Webhook received');
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
+This step-by-step guide should help you integrate Airtel mobile payments into your Node.js project successfully. Make sure to refer to Airtel's official API documentation for detailed information and updates.
